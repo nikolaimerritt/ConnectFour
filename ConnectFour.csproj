@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MathNet.Numerics" Version="4.15.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BoardGameLearner">
+      <HintPath>..\BoardGameLearner\bin\Debug\net5.0\BoardGameLearner.dll</HintPath>
+    </Reference>
+    <Reference Include="NeuralNet">
+      <HintPath>..\QLearner\QLearner\bin\Debug\net5.0\NeuralNet.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
