@@ -16,6 +16,9 @@
     <Reference Include="NeuralNet">
       <HintPath>..\QLearner\QLearner\bin\Debug\net5.0\NeuralNet.dll</HintPath>
     </Reference>
+    <Reference Include="QLearner">
+      <HintPath>..\QLearner\QLearner\bin\Debug\net5.0\QLearner.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

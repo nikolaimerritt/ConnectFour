@@ -1,27 +1,31 @@
 ﻿using System;
 using BoardGameLearner;
 
+using System.Collections.Generic;
+
 namespace BoardGameLearner
 {
 	public record Cell
 	{
-		public PlayerID PlayerId
-		{
-			get => _playerId;
-			set
-			{
-				if (IsEmpty)
-					_playerId = value;
-				else throw new Exception($"Could not overwrite a non-null Player ID");
-			}
-		}
-		private PlayerID _playerId = null;
-		public bool IsEmpty => _playerId == null;
+		public PlayerID PlayerId = null;
+		public bool IsEmpty => PlayerId == null;
 		public Cell(PlayerID playerId)
-			=> _playerId = playerId;
+			=> PlayerId = playerId;
 
 		public Cell()
 			: this(playerId: null)
 		{ }
+
+		public List<double> OneHotEncode(PlayerID firstPlayer, PlayerID secondPlayer)
+        {
+			List<double> values = new() { 0, 0, 0 };
+			int oneIdx = 0;
+			if (PlayerId == firstPlayer)
+				oneIdx = 1;
+			else if (PlayerId == secondPlayer)
+				oneIdx = 2;
+			values[oneIdx] = 1;
+			return values;
+        }
 	}
 }
