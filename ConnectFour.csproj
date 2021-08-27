@@ -3,10 +3,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <Configurations>Debug;Release;foo</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath></OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MathNet.Numerics" Version="4.15.0" />
+    <PackageReference Include="MathNet.Numerics.Data.Text" Version="4.1.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -14,10 +20,10 @@
       <HintPath>..\BoardGameLearner\bin\Debug\net5.0\BoardGameLearner.dll</HintPath>
     </Reference>
     <Reference Include="NeuralNet">
-      <HintPath>..\QLearner\QLearner\bin\Debug\net5.0\NeuralNet.dll</HintPath>
+      <HintPath>..\NeuralNet\bin\Release\net5.0\NeuralNet.dll</HintPath>
     </Reference>
     <Reference Include="QLearner">
-      <HintPath>..\QLearner\QLearner\bin\Debug\net5.0\QLearner.dll</HintPath>
+      <HintPath>..\QLearner\QLearner\bin\Release\net5.0\QLearner.dll</HintPath>
     </Reference>
   </ItemGroup>
 

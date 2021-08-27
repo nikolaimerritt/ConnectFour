@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using System.Collections.ObjectModel;
 using MathNet.Numerics.LinearAlgebra;
 using BoardGameLearner;
 using System.Collections.Generic;
@@ -10,11 +11,13 @@ namespace ConnectFour
 {
 	public class ConnectFour : IBoardGame<int>
 	{
-		private readonly PlayerID _firstPlayer;
-		private readonly PlayerID _secondPlayer;
-		private PlayerID _currentPlayer;
-		private Cell[,] _board;
-		private readonly Stack<(PlayerID player, Coord coord)> _moveHistory = new(capacity: 20);
+		protected PlayerID _firstPlayer;
+		protected PlayerID _secondPlayer;
+		protected PlayerID _currentPlayer;
+		protected Cell[,] _board;
+		protected readonly Stack<(PlayerID player, Coord coord)> _moveHistory = new(capacity: 20);
+
+		public ReadOnlyCollection<int> AllPossibleMoves => Enumerable.Range(0, _board.GetLength(1)).ToList().AsReadOnly();
 
 		public ConnectFour(PlayerID firstPlayer, PlayerID secondPlayer, int rows = 6, int columns = 7)
 		{
@@ -26,10 +29,6 @@ namespace ConnectFour
 
 		public void MakeMove(PlayerID player, int col)
         {
-			/*
-			if (player != _currentPlayer && !overrideTurnCheck)
-				throw new ArgumentException($"{player} is not the current player"); */
-
 			if (!ValidMoves(player).Contains(col))
 				throw new ArgumentException($"{player} is the current player, but move {col} is invalid for {player}");
 
@@ -79,13 +78,11 @@ namespace ConnectFour
 			_board = BlankBoard(_board.GetLength(0), _board.GetLength(1));
 		}
 
+		public bool IsValidMove(int col)
+			=> _board[0, col].IsEmpty;
+
 		public List<int> ValidMoves(PlayerID player)
-		{
-			return Enumerable
-				.Range(0, _board.GetLength(1))
-				.Where(col => _board[0, col].IsEmpty)
-				.ToList();
-		}
+			=> AllPossibleMoves.Where(IsValidMove).ToList();
 
 		public double Value(PlayerID player)
         {
@@ -98,9 +95,9 @@ namespace ConnectFour
 			if (!_moveHistory.Any())
 				throw new Exception($"No move has been made to undo");
 
-			(PlayerID prevPlayer, Coord prevMove) = _moveHistory.Pop();
+			(var _, Coord prevMove) = _moveHistory.Pop();
 			_board[prevMove.Y, prevMove.X].PlayerId = null;
-			_currentPlayer = _moveHistory.Peek().player;
+			_currentPlayer = _moveHistory.Any() ? _moveHistory.Peek().player : _firstPlayer;
 		}
 
 		public bool IsGameOver()
@@ -114,9 +111,9 @@ namespace ConnectFour
 
 		public bool IsDraw()
 		{
-			for (int r = 0; r < _board.GetLength(0); r++)
+			for (int c = 0; c < _board.GetLength(1); c++)
             {
-				if (_board[r, 0].IsEmpty)
+				if (_board[0, c].IsEmpty)
 					return false;
             }
 			return true;
@@ -124,16 +121,16 @@ namespace ConnectFour
 
 		public Vector<double> ToInputLayer(PlayerID player)
 		{
-			List<double> elements = new(capacity: 3 * _board.Length);
+			List<double> elements = new(capacity: _board.Length);
 			foreach (Cell cell in _board)
-				elements.AddRange(cell.OneHotEncode(_firstPlayer, _secondPlayer));
+				elements.Add(cell.OneHotEncode(_firstPlayer, _secondPlayer));
 			return Vector<double>.Build.DenseOfEnumerable(elements);
 		}
 
-		private static PlayerID SearchForWin(Cell[,] board, (int, int) start, (int, int) end, (int, int) step)
+		protected static PlayerID SearchForWin(Cell[,] board, (int, int) start, (int, int) end, (int, int) step)
 			=> SearchForWin(board, new Coord(start), new Coord(end), new Coord(step));
 
-		private static PlayerID SearchForWin(Cell[,] board, Coord start, Coord end, Coord step)
+		protected static PlayerID SearchForWin(Cell[,] board, Coord start, Coord end, Coord step)
         {
 			for (int r = start.Y; r < end.Y; r++)
             {
@@ -142,7 +139,8 @@ namespace ConnectFour
 					if (!board[r, c].IsEmpty)
                     {
 						PlayerID player = board[r, c].PlayerId;
-						if (Line(board, start: new(c, r), step).All(cell => cell.PlayerId == player))
+						var line = Line(board, start: new(c, r), step);
+						if (line.All(cell => cell.PlayerId == player))
 							return player;
                     }
                 }
@@ -150,10 +148,10 @@ namespace ConnectFour
 			return null;
         }
 
-		private PlayerID OtherPlayer(PlayerID player)
+		protected PlayerID OtherPlayer(PlayerID player)
 			=> player == _firstPlayer ? _secondPlayer : _firstPlayer;
 
-		private static double ValueForPlayer(Cell[,] board, PlayerID player, PlayerID opponent)
+		protected static double ValueForPlayer(Cell[,] board, PlayerID player, PlayerID opponent)
 			=> SearchForValue(board, player, opponent,
 				start: (0, 0),
 				end: (board.GetLength(1) - 3, board.GetLength(0)),
@@ -177,15 +175,15 @@ namespace ConnectFour
 				end: (board.GetLength(1) - 3, board.GetLength(0)),
 				step: (1, -1));
 
-		private static double SearchForValue(Cell[,] board, PlayerID player, PlayerID opponent, (int, int) start, (int, int) end, (int, int) step)
+		protected static double SearchForValue(Cell[,] board, PlayerID player, PlayerID opponent, (int, int) start, (int, int) end, (int, int) step)
 			=> SearchForValue(board, player, opponent, new Coord(start), new Coord(end), new Coord(step));
 
-		private static double SearchForValue(Cell[,] board, PlayerID player, PlayerID opponent, Coord start, Coord end, Coord step)
+		protected static double SearchForValue(Cell[,] board, PlayerID player, PlayerID opponent, Coord start, Coord end, Coord step)
         {
 			double value = 0;
-			double fourInARowValue = 10e4;
-			double threeInARowValue = 10e2;
-			double twoInARowValue = 1;
+			double fourInARowValue = 10;
+			double threeInARowValue = 1;
+			double twoInARowValue = 0.1;
 
 			for (int r = start.Y; r < end.Y; r++)
             {
@@ -194,27 +192,14 @@ namespace ConnectFour
 					var line = Line(board, start: new(c, r), step);
 					if (line.Any(cell => cell.PlayerId == player) && !line.Any(cell => cell.PlayerId == opponent))
                     {
-						bool lineIsSupported = true;
-						for (int s = 0; s < 4; s++)
-                        {
-							Coord coordUnderneath = new Coord(c, r - 1) + s * step;
-							if (coordUnderneath.Y >= 0 && At(board, coordUnderneath).IsEmpty)
-                            {
-								lineIsSupported = false;
-								break;
-							}
-                        }
-						if (lineIsSupported)
-                        {
-							int playersCells = line.Where(cell => cell.PlayerId == player).Count();
-							value += playersCells switch
-							{
-								4 => fourInARowValue,
-								3 => threeInARowValue,
-								2 => twoInARowValue,
-								_ => 0
-							};
-						}
+						int playersCells = line.Where(cell => cell.PlayerId == player).Count();
+						value += playersCells switch
+						{
+							4 => fourInARowValue,
+							3 => threeInARowValue,
+							2 => twoInARowValue,
+							_ => 0
+						};
 					}
                 }
             }
@@ -247,7 +232,7 @@ namespace ConnectFour
 			return builder.ToString();
         }
 
-		private static Cell[,] BlankBoard(int rows, int columns)
+		protected static Cell[,] BlankBoard(int rows, int columns)
         {
 			Cell[,] board = new Cell[rows, columns];
 			for (int r = 0; r < rows; r++)
@@ -260,13 +245,11 @@ namespace ConnectFour
 			return board;
         }
 
-		private static Cell At(Cell[,] board, Coord coord)
+		protected static Cell At(Cell[,] board, Coord coord)
 			=> board[coord.Y, coord.X];
 
-		private static IEnumerable<Cell> Line(Cell[,] board, Coord start, Coord step)
+		protected static IEnumerable<Cell> Line(Cell[,] board, Coord start, Coord step)
 			=> Enumerable.Range(0, 4)
 			.Select(i => At(board, start + i * step));
-
-        
     }
 }

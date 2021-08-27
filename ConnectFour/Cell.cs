@@ -16,16 +16,21 @@ namespace BoardGameLearner
 			: this(playerId: null)
 		{ }
 
-		public List<double> OneHotEncode(PlayerID firstPlayer, PlayerID secondPlayer)
+		public double OneHotEncode(PlayerID firstPlayer, PlayerID secondPlayer)
         {
-			List<double> values = new() { 0, 0, 0 };
+			/* List<double> values = new() { 0, 0, 0 };
 			int oneIdx = 0;
 			if (PlayerId == firstPlayer)
 				oneIdx = 1;
 			else if (PlayerId == secondPlayer)
 				oneIdx = 2;
 			values[oneIdx] = 1;
-			return values;
+			return values; */
+			if (PlayerId == null)
+				return 0;
+			if (PlayerId == firstPlayer)
+				return 1;
+			return -1;
         }
 	}
 }
